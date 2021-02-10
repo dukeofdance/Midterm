@@ -1,32 +1,20 @@
-# Prerequisites
-*.d
+**/desktop.ini
 
-# Compiled Object files
-*.slo
-*.lo
-*.o
-*.obj
+**/obj/**
+**/bin/**
+**/.vs/**
+**/.suo/**
+**.user
 
-# Precompiled Headers
-*.gch
-*.pch
+shared_assets/**
 
-# Compiled Dynamic libraries
-*.so
-*.dylib
-*.dll
+*.sln
+*.vcxproj
+*.vcxproj.filters
 
-# Fortran module files
-*.mod
-*.smod
+# Exclusions
+!**/premake5.exe
+!**/dll/**
+!**/external/**/*.lib
 
-# Compiled Static libraries
-*.lai
-*.la
-*.a
-*.lib
 
-# Executables
-*.exe
-*.out
-*.app
