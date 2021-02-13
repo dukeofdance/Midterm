@@ -116,14 +116,6 @@ void main() {
 		(ambient + (diffuseOut*edge) + specular) * attenuation // light factors from our single light
 		) * inColor * textureColor.rgb; // Object color
 	}
-	else if(u_Mode == 5)
-	{
-		result = (
-		(u_AmbientCol * u_AmbientStrength) + // global ambient light
-		(ambient + diffuse + specular) * attenuation // light factors from our single light
-		) * inColor; // Object color	
-
-	}
 	else
 	{
 		result = (

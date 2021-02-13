@@ -66,7 +66,7 @@ int main() {
 		float     lightLinearFalloff = 0.09f;
 		float     lightQuadraticFalloff = 0.032f;
 		int mode = 0;
-		//
+		
 		// These are our application / scene level uniforms that don't necessarily update
 		// every frame
 		shader->SetUniform("u_LightPos", lightPos);
@@ -88,9 +88,42 @@ int main() {
 
 		BloomEffect* bloomEffect;
 
-		bool texOn = true;
+		bool texOn = true,toon=false;
 
 		std::vector<ShaderMaterial::sptr> mats;
+#pragma region TEXTURE LOADING
+
+		// Load some textures from files
+		Texture2D::sptr stone = Texture2D::LoadFromFile("images/Stone_001_Diffuse.png");
+		Texture2D::sptr stoneSpec = Texture2D::LoadFromFile("images/Stone_001_Specular.png");
+		Texture2D::sptr grass = Texture2D::LoadFromFile("images/grass.jpg");
+		Texture2D::sptr noSpec = Texture2D::LoadFromFile("images/grassSpec.png");
+		Texture2D::sptr box = Texture2D::LoadFromFile("images/box.bmp");
+		Texture2D::sptr boxSpec = Texture2D::LoadFromFile("images/box-reflections.bmp");
+		Texture2D::sptr simpleFlora = Texture2D::LoadFromFile("images/SimpleFlora.png");
+
+		Texture2D::sptr shrineCol = Texture2D::LoadFromFile("images/reyebl.png");
+		Texture2D::sptr crystalNor = Texture2D::LoadFromFile("images/Crystal_Normal.png");
+		Texture2D::sptr crystalDif = Texture2D::LoadFromFile("images/Crystal_Albedo.png");
+		Texture2D::sptr crystalGlow = Texture2D::LoadFromFile("images/Crystal_Emission.png");
+		//LUT3D testCube("cubes/BrightenedCorrection.cube");
+
+
+
+		// Creating an empty texture
+		Texture2DDescription desc = Texture2DDescription();
+		desc.Width = 1;
+		desc.Height = 1;
+		desc.Format = InternalFormat::RGB8;
+		Texture2D::sptr texture2 = Texture2D::Create(desc);
+		// Clear it with a white colour
+		texture2->Clear();
+
+
+		// Load the cube map
+		//TextureCubeMap::sptr environmentMap = TextureCubeMap::LoadFromImages("images/cubemaps/skybox/sample.jpg");
+		TextureCubeMap::sptr environmentMap = TextureCubeMap::LoadFromImages("images/cubemaps/skybox/ToonSky.jpg");
+#pragma endregion
 
 		int width, height;
 		glfwGetWindowSize(BackendHandler::window, &width, &height);
@@ -124,13 +157,6 @@ int main() {
 				mode = 8;
 				shader->SetUniform("u_Mode", mode);
 				activeEffect = 1;
-
-				/*float intensity = temp->GetIntensity();
-
-				if (ImGui::SliderFloat("Intensity", &intensity, 0.0f, 1.0f))
-				{
-					temp->SetIntensity(0);
-				}*/
 			}
 			if (ImGui::CollapsingHeader("Effect controls")) {
 				BloomEffect* temp = (BloomEffect*)effects[activeEffect];
@@ -153,30 +179,37 @@ int main() {
 				if (texOn)
 				{
 					texOn = false;
-					mode = 7;
-					std::cout << 7<<std::endl;
-					glDisable(GL_TEXTURE_2D);
-
-					/*for (int i = 0; i < mats.size(); i++) {
+					for (int i = 0; i < mats.size(); i++) {
 						mats[i]->Set("s_Diffuse", texture2);
-					}*/
+					}
 				}
 				else {
 					texOn = true;
-					mode = 5;
-					std::cout << 5 << std::endl;
-					glEnable(GL_TEXTURE_2D);
-
-					//mats[0]->Set("s_Diffuse", stone);
-					//mats[1]->Set("s_Diffuse", grass);
-					//mats[2]->Set("s_Diffuse", box);
-					//mats[3]->Set("s_Diffuse", simpleFlora);
-					//mats[4]->Set("s_Diffuse", shrineCol);
-					//mats[5]->Set("s_Diffuse", crystalNor);
+					mats[0]->Set("s_Diffuse", stone);
+					mats[1]->Set("s_Diffuse", grass);
+					mats[2]->Set("s_Diffuse", box);
+					mats[3]->Set("s_Diffuse", simpleFlora);
+					mats[4]->Set("s_Diffuse", shrineCol);
+					mats[5]->Set("s_Diffuse", crystalNor);
 				}
 
 			}
-			
+			if (ImGui::Button("Toggle Cel Shade")) {
+				if (toon)
+				{
+					toon = false;
+					mode = 4;		
+
+				}
+				else {
+					toon = true;
+					mode = 7;
+
+				}
+				shader->SetUniform("u_Mode", mode);
+				std::cout << toon << std::endl;
+
+			}
 			if (ImGui::CollapsingHeader("Environment generation"))
 			{
 				if (ImGui::Button("Regenerate Environment", ImVec2(200.0f, 40.0f)))
@@ -241,37 +274,7 @@ int main() {
 		//glEnable(GL_CULL_FACE);
 		glDepthFunc(GL_LEQUAL); // New 
 
-		#pragma region TEXTURE LOADING
-
-		// Load some textures from files
-		Texture2D::sptr stone = Texture2D::LoadFromFile("images/Stone_001_Diffuse.png");
-		Texture2D::sptr stoneSpec = Texture2D::LoadFromFile("images/Stone_001_Specular.png");
-		Texture2D::sptr grass = Texture2D::LoadFromFile("images/grass.jpg");
-		Texture2D::sptr noSpec = Texture2D::LoadFromFile("images/grassSpec.png");
-		Texture2D::sptr box = Texture2D::LoadFromFile("images/box.bmp");
-		Texture2D::sptr boxSpec = Texture2D::LoadFromFile("images/box-reflections.bmp");
-		Texture2D::sptr simpleFlora = Texture2D::LoadFromFile("images/SimpleFlora.png");
-
-		Texture2D::sptr shrineCol = Texture2D::LoadFromFile("images/reyebl.png");
-		Texture2D::sptr crystalNor = Texture2D::LoadFromFile("images/Crystal_Normal.png");
-		Texture2D::sptr crystalDif = Texture2D::LoadFromFile("images/Crystal_Albedo.png");
-		Texture2D::sptr crystalGlow = Texture2D::LoadFromFile("images/Crystal_Emission.png");
-		LUT3D testCube("cubes/BrightenedCorrection.cube");
-
-		// Load the cube map
-		//TextureCubeMap::sptr environmentMap = TextureCubeMap::LoadFromImages("images/cubemaps/skybox/sample.jpg");
-		TextureCubeMap::sptr environmentMap = TextureCubeMap::LoadFromImages("images/cubemaps/skybox/ToonSky.jpg"); 
-
-		// Creating an empty texture
-		Texture2DDescription desc = Texture2DDescription();  
-		desc.Width = 1;
-		desc.Height = 1;
-		desc.Format = InternalFormat::RGB8;
-		Texture2D::sptr texture2 = Texture2D::Create(desc);
-		// Clear it with a white colour
-		texture2->Clear();
-
-		#pragma endregion
+		
 
 		///////////////////////////////////// Scene Generation //////////////////////////////////////////////////
 		#pragma region Scene Generation
