@@ -56,7 +56,7 @@ int main() {
 		shader->LoadShaderPartFromFile("shaders/vertex_shader.glsl", GL_VERTEX_SHADER);
 		shader->LoadShaderPartFromFile("shaders/frag_blinn_phong_textured2.glsl", GL_FRAGMENT_SHADER);
 		shader->Link();
-
+		//
 		glm::vec3 lightPos = glm::vec3(0.0f, 0.0f, 10.0f);
 		glm::vec3 lightCol = glm::vec3(0.9f, 0.85f, 0.5f);
 		float     lightAmbientPow = 0.95f;
@@ -88,8 +88,10 @@ int main() {
 
 		BloomEffect* bloomEffect;
 
-		bool texOn = true,toon=false;
+		bool texOn = true;
+		int rim = 0;
 
+		int lastMode;
 		std::vector<ShaderMaterial::sptr> mats;
 #pragma region TEXTURE LOADING
 
@@ -132,6 +134,7 @@ int main() {
 		BackendHandler::imGuiCallbacks.push_back([&]() {
 			if (ImGui::Button("No Lighting")) {
 				mode = 1;
+				lastMode = mode;
 				shader->SetUniform("u_Mode", mode);
 				activeEffect = 0;
 			}
@@ -139,24 +142,25 @@ int main() {
 				mode = 2;
 				shader->SetUniform("u_Mode", mode);
 				activeEffect = 0;
-
+				lastMode = mode;
 			}
 			if (ImGui::Button("Specular Only")) {
 				mode = 3;
 				shader->SetUniform("u_Mode", mode);
 				activeEffect = 0;
-
+				lastMode = mode;
 			}
 			if (ImGui::Button("Ambient + Specular")) {
 				mode = 0;
 				shader->SetUniform("u_Mode", mode);
 				activeEffect = 0;
-
+				lastMode = mode;
 			}
 			if (ImGui::Button("Ambient + Specular + Bloom")) {
-				mode = 8;
+				mode = 7;
 				shader->SetUniform("u_Mode", mode);
 				activeEffect = 1;
+				lastMode = mode;
 			}
 			if (ImGui::CollapsingHeader("Effect controls")) {
 				BloomEffect* temp = (BloomEffect*)effects[activeEffect];
@@ -174,7 +178,7 @@ int main() {
 					temp->SetPasses(pass);
 				}
 			}
-
+			///////////////
 			if (ImGui::Button("Toggle Texture")) {
 				if (texOn)
 				{
@@ -182,7 +186,8 @@ int main() {
 					for (int i = 0; i < mats.size(); i++) {
 						mats[i]->Set("s_Diffuse", texture2);
 					}
-				}
+					mats[5]->Set("s_Diffuse2", texture2);
+				}//
 				else {
 					texOn = true;
 					mats[0]->Set("s_Diffuse", stone);
@@ -191,32 +196,31 @@ int main() {
 					mats[3]->Set("s_Diffuse", simpleFlora);
 					mats[4]->Set("s_Diffuse", shrineCol);
 					mats[5]->Set("s_Diffuse", crystalNor);
-				}
+					mats[6]->Set("s_Diffuse", crystalNor);
 
+					mats[5]->Set("s_Diffuse2", crystalGlow);
+
+				}
+				
 			}
 			if (ImGui::Button("Toggle Cel Shade")) {
-				if (toon)
+				if (rim)
 				{
-					toon = false;
-					mode = 4;		
-
+					rim = 0;
 				}
 				else {
-					toon = true;
-					mode = 7;
-
+					rim = 1;
 				}
-				shader->SetUniform("u_Mode", mode);
-				std::cout << toon << std::endl;
+				shader->SetUniform("u_rim", rim);
 
-			}
-			if (ImGui::CollapsingHeader("Environment generation"))
+			}//
+			/*if (ImGui::CollapsingHeader("Environment generation"))
 			{
 				if (ImGui::Button("Regenerate Environment", ImVec2(200.0f, 40.0f)))
 				{
 					EnvironmentGenerator::RegenerateEnvironment();
 				}
-			}
+			}*/
 			if (ImGui::CollapsingHeader("Scene Level Lighting Settings"))
 			{
 				if (ImGui::ColorPicker3("Ambient Color", glm::value_ptr(ambientCol))) {
@@ -247,11 +251,6 @@ int main() {
 					shader->SetUniform("u_LightAttenuationQuadratic", lightQuadraticFalloff);
 				}
 			}
-
-			auto name = controllables[selectedVao].get<GameObjectTag>().Name;
-			ImGui::Text(name.c_str());
-			auto behaviour = BehaviourBinding::Get<SimpleMoveBehaviour>(controllables[selectedVao]);
-			ImGui::Checkbox("Relative Rotation", &behaviour->Relative);
 
 			ImGui::Text("Q/E -> Yaw\nLeft/Right -> Roll\nUp/Down -> Pitch\nY -> Toggle Mode");
 		
@@ -336,20 +335,30 @@ int main() {
 		shrineMat->Set("u_TextureMix", 0.0f);
 		mats.push_back(shrineMat);
 
+		ShaderMaterial::sptr dcrystalMat = ShaderMaterial::Create();
+		dcrystalMat->Shader = shader;
+		dcrystalMat->Set("s_Diffuse", crystalNor);
+		dcrystalMat->Set("s_Diffuse2", crystalGlow);
+		dcrystalMat->Set("s_Specular", crystalDif);
+		dcrystalMat->Set("u_Shininess", 8.0f);
+		dcrystalMat->Set("u_TextureMix", 0.6f);
+		mats.push_back(dcrystalMat);
+
 		ShaderMaterial::sptr crystalMat = ShaderMaterial::Create();
 		crystalMat->Shader = shader;
 		crystalMat->Set("s_Diffuse", crystalNor);
-		crystalMat->Set("s_Specular", crystalDif);
+		crystalMat->Set("s_Diffuse2", crystalDif);
+		crystalMat->Set("s_Specular", crystalGlow);
 		crystalMat->Set("u_Shininess", 8.0f);
-		crystalMat->Set("u_TextureMix", 0.0f);
+		crystalMat->Set("u_TextureMix", 0.7f);
 		mats.push_back(crystalMat);
 
-
+		int spin = 0;
 
 		GameObject obj1 = scene->CreateEntity("Ground"); 
 		{
 			VertexArrayObject::sptr vao = ObjLoader::LoadFromFile("models/plane.obj");
-			obj1.emplace<RendererComponent>().SetMesh(vao).SetMaterial(grassMat);
+			obj1.emplace<RendererComponent>().SetMesh(vao).SetMaterial(stoneMat);
 			obj1.get<Transform>().SetLocalScale(0.35f, 0.35f, 1.0f);
 
 		}
@@ -360,54 +369,86 @@ int main() {
 			obj2.emplace<RendererComponent>().SetMesh(vao).SetMaterial(shrineMat);
 			obj2.get<Transform>().SetLocalPosition(0.0f, 0.0f, 0.0f);
 			obj2.get<Transform>().SetLocalRotation(90.0f, 0.0f, -90.0f);
-			BehaviourBinding::BindDisabled<SimpleMoveBehaviour>(obj2);
+
+			/*auto pathing = BehaviourBinding::Bind<FollowPathBehaviour>(obj2);
+			pathing->Points.push_back({ 0.0f, 0.0f, 5.0f });
+			pathing->Points.push_back({ 0.0f, 0.0f, 6.0f });
+
+			pathing->Speed = 1.0f;*/
 		}
-		GameObject obj4 = scene->CreateEntity("crystal_mid");
+		GameObject obj3 = scene->CreateEntity("crystal_mid");
 		{
 			VertexArrayObject::sptr vao = ObjLoader::LoadFromFile("models/crystal.obj");
-			obj4.emplace<RendererComponent>().SetMesh(vao).SetMaterial(crystalMat);
-			obj4.get<Transform>().SetLocalPosition(0.0f, 0.0f, 5.0f);
-			obj4.get<Transform>().SetLocalRotation(90.0f, 0.0f, -90.0f);
-			BehaviourBinding::BindDisabled<SimpleMoveBehaviour>(obj4);
+			obj3.emplace<RendererComponent>().SetMesh(vao).SetMaterial(crystalMat);
+			obj3.get<Transform>().SetLocalPosition(0.0f, 0.0f, 5.0f);
+			obj3.get<Transform>().SetLocalRotation(90.0f, 0.0f, -90.0f);
+
+			auto pathing = BehaviourBinding::Bind<FollowPathBehaviour>(obj3);
+			pathing->Points.push_back({ 0.0f, 0.0f, 5.5f });
+			pathing->Points.push_back({ 0.0f, 0.0f, 5.0f });
+
+
+			pathing->Speed = 0.25f;
 		}
 		
-		/*GameObject obj4 = scene->CreateEntity("crystal_mid");
+		GameObject obj5 = scene->CreateEntity("crystal_left");
 		{
 			VertexArrayObject::sptr vao = ObjLoader::LoadFromFile("models/crystal.obj");
-			obj4.emplace<RendererComponent>().SetMesh(vao).SetMaterial(stoneMat);
-			obj4.get<Transform>().SetLocalPosition(0.0f, 0.0f, 10.0f);
-			obj4.get<Transform>().SetLocalRotation(90.0f, 0.0f, -90.0f);
-			BehaviourBinding::BindDisabled<SimpleMoveBehaviour>(obj4);
+			obj5.emplace<RendererComponent>().SetMesh(vao).SetMaterial(dcrystalMat);
+			obj5.get<Transform>().SetLocalPosition(4.5f, -4.0f, 1.0f);
+			obj5.get<Transform>().SetLocalRotation(90.0f, 0.0f, -90.0f);
+			
+			auto pathing = BehaviourBinding::Bind<FollowPathBehaviour>(obj5);
+			pathing->Points.push_back({ 4.5f, 4.0f, 1.0f });
+			pathing->Points.push_back({ 4.5f, -4.0f, 1.0f });
+
+			pathing->Speed = 2.0f;
 		}
-		GameObject obj4 = scene->CreateEntity("crystal_mid");
+		GameObject obj6 = scene->CreateEntity("crystal_up");
 		{
 			VertexArrayObject::sptr vao = ObjLoader::LoadFromFile("models/crystal.obj");
-			obj4.emplace<RendererComponent>().SetMesh(vao).SetMaterial(stoneMat);
-			obj4.get<Transform>().SetLocalPosition(0.0f, 0.0f, 10.0f);
-			obj4.get<Transform>().SetLocalRotation(90.0f, 0.0f, -90.0f);
-			BehaviourBinding::BindDisabled<SimpleMoveBehaviour>(obj4);
+			obj6.emplace<RendererComponent>().SetMesh(vao).SetMaterial(dcrystalMat);
+			obj6.get<Transform>().SetLocalPosition(4.5f, 4.0f, 1.0f);
+			obj6.get<Transform>().SetLocalRotation(90.0f, 0.0f, -90.0f);
+
+			auto pathing = BehaviourBinding::Bind<FollowPathBehaviour>(obj6);
+			pathing->Points.push_back({ -4.25f, 4.0f, 1.0f });
+			pathing->Points.push_back({ 4.5f, 4.0f, 1.0f });
+
+			pathing->Speed = 2.0f;
 		}
-		GameObject obj4 = scene->CreateEntity("crystal_mid");
+		GameObject obj7 = scene->CreateEntity("crystal_right");
 		{
 			VertexArrayObject::sptr vao = ObjLoader::LoadFromFile("models/crystal.obj");
-			obj4.emplace<RendererComponent>().SetMesh(vao).SetMaterial(stoneMat);
-			obj4.get<Transform>().SetLocalPosition(0.0f, 0.0f, 10.0f);
-			obj4.get<Transform>().SetLocalRotation(90.0f, 0.0f, -90.0f);
-			BehaviourBinding::BindDisabled<SimpleMoveBehaviour>(obj4);
+			obj7.emplace<RendererComponent>().SetMesh(vao).SetMaterial(dcrystalMat);
+			obj7.get<Transform>().SetLocalPosition(-4.25f, -4.25f, 1.0f);
+			obj7.get<Transform>().SetLocalRotation(90.0f, 0.0f, -90.0f);
+
+			auto pathing = BehaviourBinding::Bind<FollowPathBehaviour>(obj7);
+			pathing->Points.push_back({ 4.5f, -4.0f, 1.0f });
+			pathing->Points.push_back({ -4.25f, -4.25f, 1.0f });
+
+			pathing->Speed = 2.0f;
 		}
-		GameObject obj4 = scene->CreateEntity("crystal_mid");
+
+		GameObject obj8 = scene->CreateEntity("crystal_down");
 		{
 			VertexArrayObject::sptr vao = ObjLoader::LoadFromFile("models/crystal.obj");
-			obj4.emplace<RendererComponent>().SetMesh(vao).SetMaterial(stoneMat);
-			obj4.get<Transform>().SetLocalPosition(0.0f, 0.0f, 10.0f);
-			obj4.get<Transform>().SetLocalRotation(90.0f, 0.0f, -90.0f);
-			BehaviourBinding::BindDisabled<SimpleMoveBehaviour>(obj4);
-		}*/
+			obj8.emplace<RendererComponent>().SetMesh(vao).SetMaterial(dcrystalMat);
+			obj8.get<Transform>().SetLocalPosition(-4.25f, 4.0f, 1.0f);
+			obj8.get<Transform>().SetLocalRotation(90.0f, 0.0f, -90.0f);
+
+			auto pathing = BehaviourBinding::Bind<FollowPathBehaviour>(obj8);
+			pathing->Points.push_back({ -4.25f, -4.25f, 1.0f });
+			pathing->Points.push_back({ -4.25f, 4.0f, 1.0f });
+
+			pathing->Speed = 2.0f;
+		}
 	
 		// Create an object to be our camera
 		GameObject cameraObject = scene->CreateEntity("Camera");
 		{
-			cameraObject.get<Transform>().SetLocalPosition(0, 3, 3).LookAt(glm::vec3(0, 0, 0));
+			cameraObject.get<Transform>().SetLocalPosition(0, 7, 7).LookAt(glm::vec3(0, 0, 0));
 
 			// We'll make our camera a component of the camera object
 			Camera& camera = cameraObject.emplace<Camera>();// Camera::Create();
@@ -515,6 +556,13 @@ int main() {
 			time.DeltaTime = static_cast<float>(time.CurrentFrame - time.LastFrame);
 
 			time.DeltaTime = time.DeltaTime > 1.0f ? 1.0f : time.DeltaTime;
+
+			obj3.get<Transform>().SetLocalRotation(90.0f, 0.0f, spin % 360);
+			obj5.get<Transform>().SetLocalRotation(90.0f, 0.0f, -(2*spin % 360));
+			obj6.get<Transform>().SetLocalRotation(90.0f, 0.0f, -(2*spin % 360));
+			obj7.get<Transform>().SetLocalRotation(90.0f, 0.0f, -(2*spin % 360));
+			obj8.get<Transform>().SetLocalRotation(90.0f, 0.0f, -(2*spin % 360));
+			spin++;
 
 			// Update our FPS tracker data
 			fpsBuffer[frameIx] = 1.0f / time.DeltaTime;

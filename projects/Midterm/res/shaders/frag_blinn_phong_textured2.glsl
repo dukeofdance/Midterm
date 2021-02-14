@@ -29,25 +29,15 @@ uniform vec3  u_CamPos;
 
 uniform int u_Mode;
 
-//cel shading
-uniform float lightIntensity = 10.0;
-const int bands = 5;
-const float scaleFactor = 1.0/bands;
+
+//rim lighting
+uniform int u_rim;
+vec3 rimLight = vec3(1,1,1);//
+float rimPower = 2;//power
+float rimLightScale = 2;//area reached
 
 out vec4 frag_color;
 
-uniform sampler2D s_RampTexture;
-//Ramp lighting explained by 
-//https://webglfundamentals.org/webgl/lessons/webgl-ramp-textures.html
-vec4 RampCalc(float modify)
-{
-    float u = modify * 0.5 + 0.5;
-    vec2 uv = vec2(u, 0.5);
-
-    vec4 rampColor = texture(s_RampTexture, uv);
-
-    return rampColor;
-}
 
 // https://learnopengl.com/Advanced-Lighting/Advanced-Lighting
 void main() {
@@ -55,10 +45,10 @@ void main() {
 	vec3 ambient = u_AmbientLightStrength * u_LightCol;
 
 	// Diffuse
-	vec3 N = normalize(inNormal);
+	vec3 N = normalize(inNormal);// 
 	vec3 lightDir = normalize(u_LightPos - inPos);
 
-	float dif = max(dot(N, lightDir), 0.0);
+	float dif = max(dot(N, lightDir), 0.0);//
 	vec3 diffuse = dif * u_LightCol;// add diffuse intensity
 
 	//Attenuation
@@ -69,12 +59,12 @@ void main() {
 		u_LightAttenuationQuadratic * dist * dist);
 
 	// Specular
-	vec3 viewDir  = normalize(u_CamPos - inPos);
+	vec3 viewDir  = normalize(u_CamPos - inPos);//V
 	vec3 h        = normalize(lightDir + viewDir);
 
 	// Get the specular power from the specular map
 	float texSpec = texture(s_Specular, inUV).x;
-	float spec = pow(max(dot(N, h), 0.0), u_Shininess); // Shininess coefficient (can be a uniform)
+	float spec = pow(max(dot(N, h), 0.0), u_Shininess); // Shininess coefficient (can be a uniform) //specterm
 	vec3 specular = u_SpecularLightStrength * texSpec * spec * u_LightCol; // Can also use a specular color
 
 	// Get the albedo from the diffuse / albedo map
@@ -83,6 +73,18 @@ void main() {
 	vec4 textureColor = mix(textureColor1, textureColor2, u_TextureMix);
 
 	vec3 result = inColor * textureColor.rgb;
+	
+	//Rim Light		
+	float rim= clamp(1-dot(viewDir,N),0,1);
+	vec3 rimColor = (rimLight*pow(rim,rimPower));
+	float NdL=1-dot(lightDir,N);
+
+	vec3 rimResult=vec3(0.4,0.4,1.0)*rimColor*NdL;
+
+	if(u_rim==1)
+		rimResult=vec3(0.4,0.4,1.0)*rimColor*NdL;
+	else
+		rimResult=vec3(0);
 
 	if(u_Mode == 1)
 	{
@@ -98,22 +100,7 @@ void main() {
 	else if(u_Mode == 3)
 	{
 		result = (
-		(diffuse + specular) * attenuation // light factors from our single light
-		) * inColor * textureColor.rgb; // Object color
-	}
-	else if(u_Mode == 4)
-	{
-		//Cel Shading
-		vec3 diffuseOut = (dif * u_LightCol) / (dist*dist);
-		diffuseOut = diffuseOut*lightIntensity;
-		diffuseOut=floor(diffuseOut*bands)*scaleFactor;
-
-		//Outline
-		float edge=(dot(viewDir,N) <0.2)? 0.0 : 1.0;
-		
-		result = (
-		(u_AmbientCol * u_AmbientStrength) + // global ambient light
-		(ambient + (diffuseOut*edge) + specular) * attenuation // light factors from our single light
+		(specular) * attenuation // light factors from our single light
 		) * inColor * textureColor.rgb; // Object color
 	}
 	else
@@ -124,5 +111,5 @@ void main() {
 		) * inColor * textureColor.rgb; // Object color	
 	}
 
-	frag_color = vec4(result, textureColor.a);
+	frag_color = vec4(result+rimResult, textureColor.a);
 }
