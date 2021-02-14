@@ -1,0 +1,4 @@
+Crystal model and textures by PolyToots https://skfb.ly/6SQG8
+
+Rim lighting Equation inspired by "Fake Planet Atmosphere" by shicz86 https://www.shadertoy.com/view/wdtcDX
+The calculation of rim lighting was inspired by the above code but the overall implementation into the current shader was done by me

@@ -91,7 +91,6 @@ int main() {
 		bool texOn = true;
 		int rim = 0;
 
-		int lastMode;
 		std::vector<ShaderMaterial::sptr> mats;
 #pragma region TEXTURE LOADING
 
@@ -134,7 +133,6 @@ int main() {
 		BackendHandler::imGuiCallbacks.push_back([&]() {
 			if (ImGui::Button("No Lighting")) {
 				mode = 1;
-				lastMode = mode;
 				shader->SetUniform("u_Mode", mode);
 				activeEffect = 0;
 			}
@@ -142,34 +140,29 @@ int main() {
 				mode = 2;
 				shader->SetUniform("u_Mode", mode);
 				activeEffect = 0;
-				lastMode = mode;
 			}
 			if (ImGui::Button("Specular Only")) {
 				mode = 3;
 				shader->SetUniform("u_Mode", mode);
 				activeEffect = 0;
-				lastMode = mode;
-			}
+			}//
 			if (ImGui::Button("Ambient + Specular")) {
 				mode = 0;
 				shader->SetUniform("u_Mode", mode);
 				activeEffect = 0;
-				lastMode = mode;
 			}
 			if (ImGui::Button("Ambient + Specular + Bloom")) {
 				mode = 7;
 				shader->SetUniform("u_Mode", mode);
 				activeEffect = 1;
-				lastMode = mode;
 			}
 			if (ImGui::CollapsingHeader("Effect controls")) {
 				BloomEffect* temp = (BloomEffect*)effects[activeEffect];
 				float threshold = temp->GetThreshold();
 				int pass = temp->GetPasses();
-
-				
+								
 				if (ImGui::SliderFloat("Brightness Threshold", &threshold, 0.0f, 1.0f))
-				{
+				{//
 					temp->SetThreshold(threshold);
 				}
 				
@@ -178,7 +171,7 @@ int main() {
 					temp->SetPasses(pass);
 				}
 			}
-			///////////////
+		
 			if (ImGui::Button("Toggle Texture")) {
 				if (texOn)
 				{
@@ -187,7 +180,7 @@ int main() {
 						mats[i]->Set("s_Diffuse", texture2);
 					}
 					mats[5]->Set("s_Diffuse2", texture2);
-				}//
+				}
 				else {
 					texOn = true;
 					mats[0]->Set("s_Diffuse", stone);
@@ -203,7 +196,7 @@ int main() {
 				}
 				
 			}
-			if (ImGui::Button("Toggle Cel Shade")) {
+			if (ImGui::Button("Toggle Rim Lighting")) {
 				if (rim)
 				{
 					rim = 0;
@@ -213,7 +206,7 @@ int main() {
 				}
 				shader->SetUniform("u_rim", rim);
 
-			}//
+			}
 			/*if (ImGui::CollapsingHeader("Environment generation"))
 			{
 				if (ImGui::Button("Regenerate Environment", ImVec2(200.0f, 40.0f)))
@@ -370,11 +363,6 @@ int main() {
 			obj2.get<Transform>().SetLocalPosition(0.0f, 0.0f, 0.0f);
 			obj2.get<Transform>().SetLocalRotation(90.0f, 0.0f, -90.0f);
 
-			/*auto pathing = BehaviourBinding::Bind<FollowPathBehaviour>(obj2);
-			pathing->Points.push_back({ 0.0f, 0.0f, 5.0f });
-			pathing->Points.push_back({ 0.0f, 0.0f, 6.0f });
-
-			pathing->Speed = 1.0f;*/
 		}
 		GameObject obj3 = scene->CreateEntity("crystal_mid");
 		{

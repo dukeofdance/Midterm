@@ -76,7 +76,7 @@ void BloomEffect::ApplyEffect(PostEffect* buffer)
 	UnbindShader();
 
 
-	//Performs high pass on the first render target
+	//Performs high pass on the first render target using the BloomBrightPass fragment shader
 	BindShader(1);
 	_shaders[1]->SetUniform("u_Threshold", _threshold);
 
@@ -89,7 +89,7 @@ void BloomEffect::ApplyEffect(PostEffect* buffer)
 	UnbindShader();
 
 
-	//Computes blur, vertical and horizontal
+	//Computes blur, vertical and horizontal with the respective Blur fragment shaders
 	for (unsigned i = 0; i < _passes; i++)
 	{
 		//Horizontal pass
@@ -118,7 +118,7 @@ void BloomEffect::ApplyEffect(PostEffect* buffer)
 	}
 
 
-	//Composite the scene and the bloom
+	//Composite the scene and the bloom with the BloomComposite.frag
 	BindShader(4);
 
 	buffer->BindColorAsTexture(0, 0, 0);

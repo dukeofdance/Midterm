@@ -30,11 +30,11 @@ uniform vec3  u_CamPos;
 uniform int u_Mode;
 
 
-//rim lighting
+//rim lighting 
 uniform int u_rim;
-vec3 rimLight = vec3(1,1,1);//
+vec3 rimLightPos = vec3(1,1,1);//
 float rimPower = 2;//power
-float rimLightScale = 2;//area reached
+float rimScale = 2;//area reached
 
 out vec4 frag_color;
 
@@ -74,9 +74,9 @@ void main() {
 
 	vec3 result = inColor * textureColor.rgb;
 	
-	//Rim Light		
+	//Rim Light	calculation from https://www.shadertoy.com/view/wdtcDX
 	float rim= clamp(1-dot(viewDir,N),0,1);
-	vec3 rimColor = (rimLight*pow(rim,rimPower));
+	vec3 rimColor = (pow(rim,rimPower)*rimLightPos)*rimScale;
 	float NdL=1-dot(lightDir,N);
 
 	vec3 rimResult=vec3(0.4,0.4,1.0)*rimColor*NdL;

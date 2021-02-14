@@ -14,7 +14,7 @@ void main()
 	
 	float brightness = (color.r + color.g + color.b) / 3.0;
 	
-	if (brightness > u_Threshold) 
+	if (brightness > u_Threshold) //Extract the bright colors ofthe scene based on a threshhold
 	{
 		FragColor = color;
 	}
